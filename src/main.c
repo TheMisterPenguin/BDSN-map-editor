@@ -12,7 +12,31 @@ static GtkWidget *gtk_da;
 static void *gdk_window;
 static void *window_id;
 
+void erreur(const char* message){
+    GtkWidget *fenDialogue = NULL;
 
+    fenDialogue = gtk_dialog_new_with_buttons("Erreur",
+                                              gtk_window,
+                                              GTK_DIALOG_MODAL,
+                                              "OK",
+                                              GTK_RESPONSE_OK,
+                                              NULL);
+
+    GtkWidget *contenu = gtk_dialog_get_content_area(GTK_DIALOG(fenDialogue));
+    GtkWidget *texte = gtk_label_new(message);
+
+    gtk_widget_set_size_request(fenDialogue, 200, 150);
+
+    g_signal_connect_swapped (fenDialogue,
+                          "response",
+                          G_CALLBACK (gtk_widget_destroy),
+                          fenDialogue);
+
+    gtk_container_add(GTK_CONTAINER(contenu), texte);
+
+    gtk_widget_show_all(fenDialogue);
+
+}
 
 FILE *ouvrir_fichier(GtkApplication *app, gpointer fenetre){
     GtkWidget *fenDialogue = NULL;
@@ -32,11 +56,20 @@ FILE *ouvrir_fichier(GtkApplication *app, gpointer fenetre){
         char *nom_fichier = NULL;
         GtkFileChooser *chooser = GTK_FILE_CHOOSER(fenDialogue);
         nom_fichier = gtk_file_chooser_get_filename(chooser);
-        printf("%s\n", nom_fichier);
-        g_free(nom_fichier);
+        FILE *f = fopen(nom_fichier, "w");
+
+    switch(errno){
+        case 0 : break;
+        case EACCES : erreur("Impossible d'ouvrir le fichier : accès refusé !"); break;
+        case ENFILE :
+        case EMFILE : erreur("Impossible d'ouvrir le fichier : le nombre maximal de fichier ouvert à été atteint !"); break; 
+        case EROFS : erreur("Impossible d'ouvrir le fichier : le fichier est en lecture seule !"); break;
+        default : erreur("Impossible d'ouvrir le fichier : erreur inconnue !");
+    }
+    fclose(f);
+    g_free(nom_fichier);
     }
     gtk_widget_destroy(fenDialogue);
-
     return NULL;
 }
 
